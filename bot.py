@@ -45,6 +45,7 @@ load_dotenv()
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
+intents.voice_states = True 
 
 # yt-dlp options buat donlod lagu
 ytdl_format_options = {
