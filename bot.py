@@ -1,4 +1,4 @@
-# SSL fix untuk macOS - HARUS di paling atas!
+# ssl fix macos
 import ssl
 ssl._create_default_https_context = ssl._create_unverified_context
 
@@ -15,7 +15,7 @@ import traceback
 import ctypes
 import ctypes.util
 
-# Manual load opus untuk macOS - coba beberapa path yang mungkin
+# manual load opus (anjeng anjeng)
 opus_paths = [
     '/opt/homebrew/lib/libopus.dylib',  # Apple Silicon (M1/M2/M3)
     '/usr/local/lib/libopus.dylib',     # Intel Mac
@@ -38,15 +38,15 @@ if not opus_loaded:
     print("⚠️ Could not load opus! Music commands won't work.")
     print("Try running: brew reinstall opus")
 
-# Load environment variables
+# load environment variables
 load_dotenv()
 
-# Bot setup with intents
+# setup bot pake intents
 intents = discord.Intents.default()
 intents.message_content = True
 intents.members = True
 
-# yt-dlp options for downloading audio
+# yt-dlp options buat donlod lagu
 ytdl_format_options = {
     'format': 'bestaudio/best',
     'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
@@ -55,8 +55,8 @@ ytdl_format_options = {
     'nocheckcertificate': True,
     'ignoreerrors': False,
     'logtostderr': False,
-    'quiet': False,  # Changed to False for debugging
-    'no_warnings': False,  # Changed to False for debugging
+    'quiet': False,  # false buat debugging
+    'no_warnings': False,  # false buat debugging
     'default_search': 'auto',
     'source_address': '0.0.0.0',
 }
@@ -83,7 +83,7 @@ class YTDLSource(discord.PCMVolumeTransformer):
         data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
 
         if 'entries' in data:
-            # Take first item from a playlist
+            # ambil first item dari playlist
             data = data['entries'][0]
 
         filename = data['url'] if stream else ytdl.prepare_filename(data)
@@ -113,7 +113,7 @@ class MusicQueue:
     def is_empty(self):
         return len(self.queue) == 0
 
-# Store queues per guild
+# queue per guild
 music_queues = {}
 
 class MyBot(commands.Bot):
@@ -121,7 +121,7 @@ class MyBot(commands.Bot):
         super().__init__(command_prefix='!', intents=intents)
         
     async def setup_hook(self):
-        # Sync slash commands instantly to your server for testing
+        # sync slash commands (buat testing)
         guild = discord.Object(id=1417824633096372356)
         self.tree.copy_global_to(guild=guild)
         await self.tree.sync(guild=guild)
@@ -147,7 +147,7 @@ async def play_next(interaction: discord.Interaction):
     song = queue.next()
     if song:
         try:
-            print(f"Attempting to play: {song['title']}")  # Debug log
+            print(f"Attempting to play: {song['title']}")  # log debug
             player = await YTDLSource.from_url(song['url'], loop=bot.loop, stream=True)
             
             voice_client.play(
@@ -164,16 +164,16 @@ async def play_next(interaction: discord.Interaction):
                 embed.set_thumbnail(url=player.thumbnail)
             
             await interaction.followup.send(embed=embed)
-            print(f"Now playing: {player.title}")  # Debug log
+            print(f"Now playing: {player.title}")  # log debug
             
         except Exception as e:
-            print(f"Error in play_next: {e}")  # Debug log
+            print(f"Error in play_next: {e}")  # log debug
             import traceback
             traceback.print_exc()
             await interaction.followup.send(f"❌ ngga bisa muter lagunya {str(e)}")
             await play_next(interaction)
     else:
-        # Queue is empty, disconnect after 5 minutes
+        # disconnect abis 5 menit kalo ga muter lagu
         await asyncio.sleep(300)
         if voice_client and not voice_client.is_playing():
             await voice_client.disconnect()
@@ -187,34 +187,34 @@ async def on_ready():
         name="/play buat muter lagu (di VC ya)"
     ))
 
-# MUSIC COMMAND: Play
+# command: play
 @bot.tree.command(name="play", description="muter lagu dari yutub")
 @app_commands.describe(query="masukkin judul lagu atau link yutubnya")
 async def play(interaction: discord.Interaction, query: str):
-    # Check if user is in voice channel
+    # ngecek ada user apa engga di channel
     if not interaction.user.voice:
         await interaction.response.send_message("❌ pean harus masuk vc dulu!", ephemeral=True)
         return
     
     await interaction.response.defer()
     
-    # Connect to voice channel if not already connected
+    # connect ke channel kalo belom
     voice_client = interaction.guild.voice_client
     if not voice_client:
         channel = interaction.user.voice.channel
         voice_client = await channel.connect()
     
     try:
-        # Search for the song
+        # nyari lagu
         async with interaction.channel.typing():
-            print(f"Searching for: {query}")  # Debug log
+            print(f"Searching for: {query}")  # log debug
             
             data = await bot.loop.run_in_executor(
                 None,
                 lambda: ytdl.extract_info(f"ytsearch:{query}", download=False)
             )
             
-            print(f"Search complete, processing data...")  # Debug log
+            print(f"Search complete, processing data...")  # log debug
             
             if 'entries' in data:
                 data = data['entries'][0]
@@ -226,16 +226,16 @@ async def play(interaction: discord.Interaction, query: str):
                 'thumbnail': data.get('thumbnail')
             }
             
-            print(f"Found song: {song_info['title']}")  # Debug log
+            print(f"Found song: {song_info['title']}")  # log debug
             
             queue = get_queue(interaction.guild.id)
             
-            # If nothing is playing, play immediately
+            # kalo ga ada lagu yang muter, langsung puter
             if not voice_client.is_playing():
                 queue.add(song_info)
                 await play_next(interaction)
             else:
-                # Add to queue
+                # nambahin ke antrian
                 queue.add(song_info)
                 embed = discord.Embed(
                     title="➕ ditambahkan ke antrian",
@@ -249,12 +249,12 @@ async def play(interaction: discord.Interaction, query: str):
                 await interaction.followup.send(embed=embed)
                 
     except Exception as e:
-        print(f"Error in play command: {e}")  # Debug log
+        print(f"Error in play command: {e}")  # log debug
         import traceback
         traceback.print_exc()
         await interaction.followup.send(f"❌ Error: {str(e)}")
 
-# MUSIC COMMAND: Pause
+# command: pause
 @bot.tree.command(name="pause", description="pause lagunya")
 async def pause(interaction: discord.Interaction):
     voice_client = interaction.guild.voice_client
@@ -265,7 +265,7 @@ async def pause(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("❌ ga ada lagu yang lagi di puter!", ephemeral=True)
 
-# MUSIC COMMAND: Resume
+# command: resume
 @bot.tree.command(name="resume", description="nerusin lagunya")
 async def resume(interaction: discord.Interaction):
     voice_client = interaction.guild.voice_client
@@ -276,7 +276,7 @@ async def resume(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("❌ ga ada lagu yang lagi di pause!", ephemeral=True)
 
-# MUSIC COMMAND: Skip
+# command: skip
 @bot.tree.command(name="skip", description="skip lagu")
 async def skip(interaction: discord.Interaction):
     voice_client = interaction.guild.voice_client
@@ -287,7 +287,7 @@ async def skip(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("❌ ga ada lagu yang lagi di puter!", ephemeral=True)
 
-# MUSIC COMMAND: Stop
+# command: stop
 @bot.tree.command(name="stop", description="stop lagu")
 async def stop(interaction: discord.Interaction):
     voice_client = interaction.guild.voice_client
@@ -301,7 +301,7 @@ async def stop(interaction: discord.Interaction):
     else:
         await interaction.response.send_message("❌ aku gak lagi di VC loh!", ephemeral=True)
 
-# MUSIC COMMAND: Queue
+# command: queue
 @bot.tree.command(name="queue", description="nunjukkin antrian lagu")
 async def show_queue(interaction: discord.Interaction):
     queue = get_queue(interaction.guild.id)
@@ -334,7 +334,7 @@ async def show_queue(interaction: discord.Interaction):
     
     await interaction.response.send_message(embed=embed)
 
-# MUSIC COMMAND: Loop
+# command: loop
 @bot.tree.command(name="loop", description="loop lagu")
 async def loop(interaction: discord.Interaction):
     queue = get_queue(interaction.guild.id)
@@ -344,7 +344,7 @@ async def loop(interaction: discord.Interaction):
     emoji = "🔂" if queue.loop else "➡️"
     await interaction.response.send_message(f"{emoji} loop {status}!")
 
-# MUSIC COMMAND: Now Playing
+# command: now playing
 @bot.tree.command(name="nowplaying", description="nunjukkin lagu yang lagi diputer")
 async def nowplaying(interaction: discord.Interaction):
     voice_client = interaction.guild.voice_client
@@ -365,7 +365,7 @@ async def nowplaying(interaction: discord.Interaction):
         
         await interaction.response.send_message(embed=embed)
 
-# OTHER COMMANDS (keeping your existing ones)
+# command laen
 
 @bot.tree.command(name="roll", description="roll dadu anjay")
 @app_commands.describe(sides="pilih jumlah nomor (default: 6)")
@@ -377,7 +377,7 @@ async def roll(interaction: discord.Interaction, sides: int = 6):
     result = random.randint(1, sides)
     await interaction.response.send_message(f'🎲 wee dapet **{result}** (d{sides})')
 
-# Run the bot
+# run bot anjayyy
 if __name__ == '__main__':
     TOKEN = os.getenv('DISCORD_TOKEN')
     if not TOKEN:
