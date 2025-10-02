@@ -192,12 +192,29 @@ async def on_ready():
 @bot.tree.command(name="play", description="muter lagu dari yutub")
 @app_commands.describe(query="masukkin judul lagu atau link yutubnya")
 async def play(interaction: discord.Interaction, query: str):
-    # ngecek ada user apa engga di channel
-    if not interaction.user.voice:
-        await interaction.response.send_message("❌ pean harus masuk vc dulu!", ephemeral=True)
+    start_time = time.time()
+    try:
+        print(f"[PLAY] Command received from {interaction.user.name} at {start_time}")
+        print(f"[PLAY] Interaction created at: {interaction.created_at}")
+        print(f"[PLAY] Time since creation: {(time.time() - interaction.created_at.timestamp()):.3f}s")
+        
+        # defer immediately to prevent timeout
+        await interaction.response.defer()
+        defer_time = time.time()
+        print(f"[PLAY] Deferred successfully in {(defer_time - start_time):.3f}s")
+    except discord.errors.NotFound as e:
+        print(f"[PLAY] Failed to defer - interaction expired: {e}")
+        print(f"[PLAY] Time elapsed: {(time.time() - start_time):.3f}s")
+        return
+    except Exception as e:
+        print(f"[PLAY] Unexpected error during defer: {e}")
+        traceback.print_exc()
         return
     
-    await interaction.response.defer()
+    # ngecek ada user apa engga di channel
+    if not interaction.user.voice:
+        await interaction.followup.send("❌ pean harus masuk vc dulu!", ephemeral=True)
+        return
     
     # connect ke channel kalo belom
     voice_client = interaction.guild.voice_client
